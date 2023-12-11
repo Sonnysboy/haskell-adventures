@@ -14,9 +14,9 @@ toDigitsRev n
 doubleEveryOther :: [Integer] -> [Integer]
 doubleEveryOther list = reverse (aux (reverse list))
   where
-	aux [] = []
-	aux [x] = [x] -- one-element list is itself
-	aux (x : (y : zs)) = x : (y * 2) : aux zs -- [x,y,...zs] list starting with x followed by a list starting with y
+  aux [] = []
+  aux [x] = [x] -- one-element list is itself
+  aux (x : (y : zs)) = x : (y * 2) : aux zs -- [x,y,...zs] list starting with x followed by a list starting with y
 
 -- convert all numbers in a list into their digits and then sum them
 sumDigits :: [Integer] -> Integer
