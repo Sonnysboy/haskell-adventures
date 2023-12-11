@@ -6,7 +6,6 @@ module LogAnalysis where
 -- E 2 148 #56k istereadeat lo d200ff] BOOTMEM
 import Log
 
-
 {-
 
 Exercise 1 The first step is figuring out how to parse an individual
@@ -46,7 +45,7 @@ parseMessage str = case typeFromString str of
   Nothing -> Unknown str
   Just Info -> LogMessage Info ts msg
   Just Warning -> LogMessage Warning ts msg
-  Just (Error severity) ->  LogMessage (Error severity) ts msg
+  Just (Error severity) -> LogMessage (Error severity) ts msg
   where
     ts = timestampFromString str
     msg = messageFromString str
@@ -60,9 +59,6 @@ parse :: String -> [LogMessage]
 
 parse :: String -> [LogMessage]
 parse file = map parseMessage (lines file)
-
-
-
 
 {-
 Exercise 2 Define a function
@@ -78,30 +74,27 @@ Unknown, it should return the MessageTree unchanged
 -- are you serious
 
 insert :: LogMessage -> MessageTree -> MessageTree
-
 insert message Leaf = case message of
-    (Unknown _) -> Leaf
-    _ -> Node Leaf message Leaf
-
+  (Unknown _) -> Leaf
+  _ -> Node Leaf message Leaf
 insert (Unknown msg) tree = tree
-insert toInsert@(LogMessage typeOf thisTimestamp _) (Node left currentMessage@(LogMessage _ timeStamp  _) right)
+insert toInsert@(LogMessage typeOf thisTimestamp _) (Node left currentMessage@(LogMessage _ timeStamp _) right)
   | thisTimestamp == timeStamp = Node left currentMessage right
   | thisTimestamp < timeStamp = Node (insert toInsert left) currentMessage right
   | thisTimestamp > timeStamp = Node left currentMessage (insert toInsert right)
 
 inOrder :: MessageTree -> [LogMessage]
 inOrder tree = inOrder' tree []
+
 inOrder' :: MessageTree -> [LogMessage] -> [LogMessage]
 inOrder' (Node Leaf message Leaf) arr = [message]
 inOrder' Leaf arr = arr
 inOrder' tree@(Node left message right) arr = inOrder' left arr ++ [message] ++ inOrder' right arr
 
-
 build :: [LogMessage] -> MessageTree
 build arr = foldr insert Leaf (reverse arr)
 
 -- WHO THE HELL MAKES THEIR NEW PROGRAMMING STUDENTS IMPLEMENT AN ENTIRE BST?!?!??!  THIS TOOK ME AN HOUR AND A HALF
-
 
 {-
 which takes an unsorted list of LogMessages, and returns a list of the
@@ -111,6 +104,7 @@ previous exercises to do the sorting.)
 -}
 whatWentWrong :: [LogMessage] -> [String]
 whatWentWrong messages = concatMap (\(LogMessage (Error _) _ str) -> [str]) ((inOrder . build) (filter errorFilter messages))
+
 errorFilter :: LogMessage -> Bool
 errorFilter message@(LogMessage (Error sev) _ _) = sev >= 50 -- only return Just if we have an error with severity >= 50
 errorFilter _ = False
