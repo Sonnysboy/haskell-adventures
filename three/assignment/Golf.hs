@@ -120,7 +120,7 @@ downOne :: [(Integer, Int)] -> [(Integer, Int)]
 downOne tuples = filter (\(x1, x2) -> 0 < x2) $ map (\(x1, x2) -> (x1, x2 - 1)) tuples
 
 generateRow :: [Integer] -> String
-generateRow keys = foldr (\x acc -> acc ++ if x `elem` keys then "*" else " ") "" [1, 2, 3, 4, 5, 6, 7, 8, 9]
+generateRow keys = foldr (\x acc -> acc ++ if x `elem` keys then "*" else " ") "" [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 generateRows :: [(Integer, Int)] -> [String]
 generateRows [] = [""]
