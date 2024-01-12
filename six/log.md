@@ -1,0 +1,1 @@
+lecture six didnt teach anything new.
