@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 import ExprT;
 import Parser
 {-
@@ -29,18 +30,17 @@ evalStr str = case parseExp Lit Add Mul str of
     Just expr -> Just $ eval expr
 
 class Expr a where
-    lit :: Expr a => a -> ExprT
-    add :: Expr a => a
-    mul :: Expr a => a
+    lit :: a -> ExprT
+    add :: ExprT  -> ExprT -> ExprT
+    mul :: ExprT -> ExprT -> ExprT
     -- mul :: a -> a -> a
-    -- add :: Expr a -> Expr a -> Expr a
+-- add :: Expr a -> Expr a -> Expr a
     -- mul :: Expr a -> Expr-> Expr a
     -- add :: ExprT -> ExprT -> ExprT
     -- mul :: ExprT -> ExprT -> ExprT
 instance Expr Integer where
-    lit :: Integer -> a
     lit = Lit
-    add :: a -> ExprT -> ExprT
+    add :: ExprT -> ExprT -> ExprT
     add = Add
     mul :: ExprT -> ExprT -> ExprT
     mul = Mul
