@@ -30,18 +30,51 @@ evalStr str = case parseExp Lit Add Mul str of
     Just expr -> Just $ eval expr
 
 class Expr a where
-    lit :: a -> ExprT
-    add :: ExprT  -> ExprT -> ExprT
-    mul :: ExprT -> ExprT -> ExprT
+    lit :: Integer -> a
+    add :: a  -> a -> a
+    mul :: a -> a -> a
     -- mul :: a -> a -> a
 -- add :: Expr a -> Expr a -> Expr a
     -- mul :: Expr a -> Expr-> Expr a
     -- add :: ExprT -> ExprT -> ExprT
     -- mul :: ExprT -> ExprT -> ExprT
-instance Expr Integer where
+instance Expr ExprT where
     lit = Lit
     add :: ExprT -> ExprT -> ExprT
     add = Add
     mul :: ExprT -> ExprT -> ExprT
     mul = Mul
 
+instance Expr Integer where
+    lit = id
+    add = (+)
+    mul = (*)
+
+reify :: ExprT -> ExprT
+reify = id
+
+instance Expr Bool where
+    lit = (<0)
+    add = (&&)
+    mul = (||)
+
+newtype MinMax = MinMax Integer deriving (Eq, Show)
+newtype Mod7 = Mod7 Integer deriving (Eq, Show)
+
+instance Expr MinMax where
+    lit = MinMax
+
+    add (MinMax x) (MinMax y) = MinMax $ max x y
+
+    mul (MinMax x) (MinMax y) = MinMax $ min x y
+
+instance Expr Mod7 where
+    lit x = Mod7 (x `mod` 7)
+
+    add (Mod7 x) (Mod7 y) = Mod7 $ mod (x + y) 7
+
+    mul (Mod7 x) (Mod7 y) = Mod7 $ mod (x * y) 7
+
+
+testExp :: Expr a => Maybe a
+testExp = parseExp lit add mul "(3 * -4) + 5"
