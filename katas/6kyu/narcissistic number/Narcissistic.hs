@@ -7,4 +7,3 @@ narcissistic n = toInteger n == sum (map (^l) digits)
         d = map (read . return) . show
         digits = d $ toInteger n
         l = length digits
-        forall 

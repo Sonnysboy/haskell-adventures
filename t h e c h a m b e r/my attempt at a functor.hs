@@ -1,4 +1,4 @@
--- so what im gonna do is make a functor over a binary tree
+-- so what im gonna do is make a functor over a tree
 
 data Tree a = Empty | Node a (Tree a) (Tree a) deriving (Eq, Show)
 
@@ -20,12 +20,16 @@ flatten (Node x l r) = flatten l ++ [x] ++ flatten r
 
 
 
+-- basically this allows you to map over the tree
 instance Functor Tree where
-    fmap f x = fromList $ map f $ flatten x
+    fmap :: (a -> b) -> Tree a -> Tree b
+    fmap f Empty = Empty
+    fmap f (Node x left right) = Node (f x) (fmap f left) (fmap f right)
+
+tree = fromList [1..10]
+
+main = do
+    -- holy and it preserves the invariant too
+    print $ fmap (+40) tree
 
 
-
-testTreeOne = [1..10]
-
-testTreeTwo :: [Integer]
-testTreeTwo = [1, 20, 3, 4, 50, 43, 2, 32]
