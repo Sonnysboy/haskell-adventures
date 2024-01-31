@@ -27,10 +27,11 @@ instance Functor Tree where
     fmap f (Node x left right) = Node (f x) (fmap f left) (fmap f right)
 
 tree = fromList [1..10]
+tree2 = (+40) <$> tree
 
 f x y = ((>>) <$> print <*> pure) (x+y)
 main = do
     -- holy and it preserves the invariant too
-    print $ fmap (+40) tree
+    print $ (+40) <$> tree
 
 
