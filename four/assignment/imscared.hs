@@ -66,7 +66,7 @@ function.
 -}
 
 map' :: (a -> b) -> [a] -> [b]
-map' f = foldr (\c acc -> f c : acc) []
+map' f xs = foldr (\c acc -> f c : acc) [] xs 
 
 {-
 Exercise 4: Finding primes

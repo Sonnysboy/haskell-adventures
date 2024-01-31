@@ -1,6 +1,7 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 import ExprT;
 import Parser
+import StackVM (Program)
 {-
 On day one of your new job as a software engineer, you’ve been
 asked to program the brains of the company’s new blockbuster prod-
@@ -78,3 +79,9 @@ instance Expr Mod7 where
 
 testExp :: Expr a => Maybe a
 testExp = parseExp lit add mul "(3 * -4) + 5"
+
+
+instance Expr Program where
+    
+    
+    

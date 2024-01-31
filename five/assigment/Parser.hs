@@ -32,7 +32,7 @@ instance Applicative (State s) where
 
 instance Alternative (State s) where
     empty = State $ const Nothing
-    State f <|> State g = State $ \s -> maybe (g s) Just (f s)
+    State f <|> State g = State $ \s -> f s <|> g s
 
 -- A parser threads some 'String' state through a computation that
 -- produces some value of type @a@.
@@ -72,7 +72,7 @@ char c = State parseChar
 
 -- Parse one of our two supported operator symbols.
 op :: Parser (Expr -> Expr -> Expr)
-op = const Add <$> (char '+') <|> const Mul <$> (char '*')
+op = (Add <$ char '+') <|> (Mul <$ char '*')
 
 -- Succeed only if the end of the input has been reached.
 eof :: Parser ()

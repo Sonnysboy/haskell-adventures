@@ -1,0 +1,1 @@
+# Hey so now im gonna do [this](https://edu.anarcho-copy.org/Programming%20Languages/Haskell/Haskell%20Programming.pdf)
