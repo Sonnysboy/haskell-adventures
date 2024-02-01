@@ -1,5 +1,6 @@
 import Data.Map (Map)
 newtype JsonError = JsonError String
+    deriving Show
 
 data JsonValue = JsonNull
                | JsonBool Bool
@@ -20,24 +21,19 @@ class ToJson a where
     toJson :: a -> JsonValue
 
 instance ToJson Double where
-    toJson :: Double -> JsonValue
     toJson = JsonNumber
 
 instance ToJson Bool where
-    toJson :: Bool -> JsonValue
     toJson = JsonBool 
 
 instance ToJson String where
-    toJson :: String -> JsonValue
     toJson = JsonString
 
 instance (ToJson a) => ToJson [a] where
-    toJson :: ToJson a => [a] -> JsonValue
     toJson xs = JsonArray $ toJson <$> xs
 
 
 class FromJson a where
-    -- could return an error if something is wrong
     fromJson :: JsonValue -> Either JsonError a
 
 instance FromJson Double where
@@ -46,6 +42,9 @@ instance FromJson Double where
 instance FromJson String where
     fromJson (JsonString x) = Right x
     fromJson _ = Left $ JsonError "can only read string"
+instance FromJson Bool where
+    fromJson (JsonBool x) = Right x
+    fromJson _ = Left $ JsonError "can only read string"
 
-instance (FromJson a) => FromJson [a] where
-    fromJson (JsonArray x) = Right $ fromJson <$> x
+instance (FromJson a) => FromJson [Either JsonError a] where
+    fromJson (JsonArray arr) = Right $ fromJson <$> arr
