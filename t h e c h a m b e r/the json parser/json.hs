@@ -86,13 +86,13 @@ stringify = flip stringify' 0
 
 stringify' :: JsonValue -> Int -> Text
 stringify' (JsonBool bool)     depth = pack $ show bool
-stringify' (JsonString string) depth = pack string
+stringify' (JsonString string) depth = pack ("\"" ++ string ++ "\"")
 stringify' (JsonNumber num)    depth = pack $ show num
 stringify' JsonNull            depth = pack "null"
 stringify' (JsonArray arr)     depth = pack $ "[" ++ tail (foldl (\x acc -> x ++  "," ++ unpack (stringify acc)) "" arr ++  "]")
 stringify' (JsonObject map)    depth = pack $ init (Data.Map.foldrWithKey (folder (depth+1)) "{" map) ++ (indent $ depth) ++ "}"
   where
       folder depth k a result  =  result ++ indent depth ++ show k ++ " : " ++ unpack (stringify' a depth) ++ ","
-indent n = join $ "\n" : replicate n "  "
+      indent n = join $ "\n" : replicate n "  "
 
-z = JsonObject (Data.Map.fromList [("b", JsonObject $ Data.Map.fromList [("c", JsonNumber 4.0), ("d", JsonArray $ map JsonNumber [1..10])]), ("e", JsonNumber 4)])
+z = JsonObject (Data.Map.fromList [("b", JsonObject $ Data.Map.fromList [("c", JsonNumber 4.0), ("d", JsonArray $ map JsonNumber [1..10])]), ("e", JsonNumber 4), ("f", JsonObject $ Data.Map.fromList [("g", JsonNull), ("h", JsonString "monkeys"), ("i", JsonArray $ map (JsonString . (: [])) "this is a string into its characters wrapped as strings" )])])
