@@ -24,7 +24,7 @@ instance ToJson Double where
     toJson = JsonNumber
 
 instance ToJson Bool where
-    toJson = JsonBool 
+    toJson = JsonBool
 
 instance ToJson String where
     toJson = JsonString
@@ -46,5 +46,5 @@ instance FromJson Bool where
     fromJson (JsonBool x) = Right x
     fromJson _ = Left $ JsonError "can only read string"
 
-instance (FromJson a) => FromJson [Either JsonError a] where
-    fromJson (JsonArray arr) = Right $ fromJson <$> arr
+instance (FromJson a) => FromJson [a] where
+    fromJson (JsonArray arr) = mapM fromJson arr
