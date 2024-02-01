@@ -1,6 +1,7 @@
-import Control.Applicative
 import Data.Map (Map)
 import Data.Map qualified
+import Data.Text (Text, pack, concat, append, unpack)
+import Control.Monad
 
 newtype JsonError = JsonError String
   deriving (Show)
@@ -76,3 +77,19 @@ instance (FromJson a) => FromJson (Map String a) where
 
 instance (FromJson a) => FromJson [a] where
   fromJson (JsonArray arr) = mapM fromJson arr
+
+
+-------------------
+
+stringify :: JsonValue -> Text
+stringify (JsonBool bool)     = pack $ if bool then "true" else "false"
+stringify (JsonString string) = pack string
+stringify (JsonNumber num)    = pack $ show num
+stringify JsonNull            = pack "null"
+stringify (JsonArray arr)     = pack $ "[" ++ tail (foldl (\x acc -> x ++  "," ++ unpack (stringify acc)) "" arr ++  "]")
+stringify (JsonObject map)    = pack $ init (Data.Map.foldrWithKey folder "{" map) ++ "}"
+    where folder k a result   = result ++ show k ++ ":" ++ unpack (stringify a) ++ ","
+
+toString :: JsonValue -> Text
+toString (JsonObject object) = pack ""
+toString _ =  pack ""
