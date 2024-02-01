@@ -82,14 +82,17 @@ instance (FromJson a) => FromJson [a] where
 -------------------
 
 stringify :: JsonValue -> Text
-stringify (JsonBool bool)     = pack $ if bool then "true" else "false"
-stringify (JsonString string) = pack string
-stringify (JsonNumber num)    = pack $ show num
-stringify JsonNull            = pack "null"
-stringify (JsonArray arr)     = pack $ "[" ++ tail (foldl (\x acc -> x ++  "," ++ unpack (stringify acc)) "" arr ++  "]")
-stringify (JsonObject map)    = pack $ init (Data.Map.foldrWithKey folder "{" map) ++ "}"
-    where folder k a result   = result ++ show k ++ ":" ++ unpack (stringify a) ++ ","
+stringify = flip stringify' 0
 
-toString :: JsonValue -> Text
-toString (JsonObject object) = pack ""
-toString _ =  pack ""
+stringify' :: JsonValue -> Int -> Text
+stringify' (JsonBool bool)     depth = pack $ show bool
+stringify' (JsonString string) depth = pack string
+stringify' (JsonNumber num)    depth = pack $ show num
+stringify' JsonNull            depth = pack "null"
+stringify' (JsonArray arr)     depth = pack $ "[" ++ tail (foldl (\x acc -> x ++  "," ++ unpack (stringify acc)) "" arr ++  "]")
+stringify' (JsonObject map)    depth = pack $ init (Data.Map.foldrWithKey (folder (depth+1)) "{" map) ++ (indent $ depth) ++ "}"
+  where
+      folder depth k a result  =  result ++ indent depth ++ show k ++ " : " ++ unpack (stringify' a depth) ++ ","
+indent n = join $ "\n" : replicate n "  "
+
+z = JsonObject (Data.Map.fromList [("b", JsonObject $ Data.Map.fromList [("c", JsonNumber 4.0), ("d", JsonArray $ map JsonNumber [1..10])]), ("e", JsonNumber 4)])
