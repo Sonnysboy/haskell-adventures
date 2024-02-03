@@ -27,9 +27,14 @@ instance Applicative Parser where
     -- (a -> b, string)
     Just (r, s') ->  case g s' of -- Maybe (b, String)
         Nothing -> Nothing
-        -- (a, String) -> (Just (apply a function (a -> b) to type a so now it's a b), String) 
+        -- (a, String) -> (Just (apply a function (a -> b) to type a so now it's a b so we're good and the type checker can go fuck off again!), String) 
         Just (r', s'') -> Just (r r', s'')
 
+instance Alternative Parser where
+    empty = Parser $ const Nothing
+    (<|>) :: Parser a -> Parser a -> Parser a -- whatever the hell this does
+    Parser p <|> Parser r = Parser $ \x -> p x <|> r x
+    -- the Maybe Alternative returns the first Just, i.e Just x <|> Just y = Just x
 
 
 
