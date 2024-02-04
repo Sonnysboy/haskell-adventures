@@ -99,7 +99,4 @@ num = maybe id (const negate) <$> optional (char '-') <*> (toInteger <$> some di
 value :: Parser JsonValue
 value = (JsonString <$> between '"' '"') <|> (JsonInteger <$> num)
 
-array :: Parser JsonValue
-array = JsonArray <$> fmap (\x -> value (fst x)) between '[' ']'
-
 y = char '(' *> next <* (next <|> char ')')
