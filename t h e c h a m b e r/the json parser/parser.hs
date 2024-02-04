@@ -93,7 +93,7 @@ num = maybe id (const negate) <$> optional (char '-') <*> (toInteger <$> some di
     toInteger = foldl' ((+) . (* 10)) 0
 
 value :: Parser JsonValue
-value = (JsonString <$> between '"' '"' <|> JsonInteger <$> num) <* optional (char ',')
+value = (JsonString <$> between '"' '"' <|> JsonInteger <$> num)
 
 string :: Parser String
 string = between '"' '"'
@@ -108,18 +108,22 @@ array = between '[' ']' >>= (\x -> Parser $ \_ -> parse (many (value <* char ','
 
 keyed :: Parser (String, JsonValue)
 keyed = Parser $ \x -> let
-  key = (seek ':' >>= (\x -> Parser $ \y -> case parse string x of
+  key = optional (char ',') *> (seek ':' >>= (\x -> Parser $ \y -> case parse string x of
     Just (actualKey, _) -> Just (actualKey, y)
     Nothing -> Nothing)) -- ok so now we have this key
-  in case parse key x of         
-    Just (key, rest) -> 
+  in case parse key x of
+    Just (key, rest) ->
       --          get rid of : and try to find a value from it
       case parse (char ':' >> value) rest of
       Just (value, rest') -> Just ((key, value), rest')
-      Nothing -> Nothing
+      Nothing -> error "Invalid parsing" -- we'dprobably wanna throw an error for this
+    Nothing -> Nothing
+
+pairs :: Parser [(String, JsonValue)]
+pairs = many keyed
 
 -- so we can use >> for getting things OUT of strings like
 -- (char ':' >> full) ":monkey" = monkey.
 -- what >> does is it just consumes whatever we give it and passes the rest of the string into the second function
 
-y = char '(' *> next <* (next <|> char ')')
+-- y = char '(' *> next <* (next <|> char ')')
