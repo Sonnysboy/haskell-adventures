@@ -1,4 +1,6 @@
 -- this is gonna be hard
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use tuple-section" #-}
 
 import Control.Applicative
 import Control.Arrow
@@ -65,8 +67,8 @@ next = sat (const True)
 full :: Parser String
 full = many (sat $ const True)
 
-until :: Char -> Parser String
-until = many . sat . (/=)
+seek :: Char -> Parser String
+seek = many . sat . (/=)
 
 -- Succeeds when it finds the first matching character, otherwise fails.
 either :: Char -> Char -> Parser Char
@@ -91,13 +93,33 @@ num = maybe id (const negate) <$> optional (char '-') <*> (toInteger <$> some di
     toInteger = foldl' ((+) . (* 10)) 0
 
 value :: Parser JsonValue
-value = (JsonString <$> between '"' '"') <|> (JsonInteger <$> num)
+value = (JsonString <$> between '"' '"' <|> JsonInteger <$> num) <* optional (char ',')
+
+string :: Parser String
+string = between '"' '"'
 
 -- chain :: Parser String -> Parser b -> Parser b
 -- chain (Parser f) (Parser g) = Parser $ \x -> case f x of
 --   Just (s, _) -> g s
 --   Nothing -> Nothing
 
-array = between '[' ']' >>= (\x -> Parser $ \_ -> parse (many ((value <* char ',') <|> value)) x)
+array :: Parser [JsonValue]
+array = between '[' ']' >>= (\x -> Parser $ \_ -> parse (many (value <* char ',' <|> value)) x)
+
+keyed :: Parser (String, JsonValue)
+keyed = Parser $ \x -> let
+  key = (seek ':' >>= (\x -> Parser $ \y -> case parse string x of
+    Just (actualKey, _) -> Just (actualKey, y)
+    Nothing -> Nothing)) -- ok so now we have this key
+  in case parse key x of         
+    Just (key, rest) -> 
+      --          get rid of : and try to find a value from it
+      case parse (char ':' >> value) rest of
+      Just (value, rest') -> Just ((key, value), rest')
+      Nothing -> Nothing
+
+-- so we can use >> for getting things OUT of strings like
+-- (char ':' >> full) ":monkey" = monkey.
+-- what >> does is it just consumes whatever we give it and passes the rest of the string into the second function
 
 y = char '(' *> next <* (next <|> char ')')
