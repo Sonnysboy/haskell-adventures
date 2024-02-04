@@ -9,7 +9,7 @@ import Data.Char (isNumber)
 newtype Parser a = Parser (String -> Maybe (a,String))
 
 
-parse :: Parser a -> String -> Maybe (a, String)
+parse :: Parser a -> (String -> Maybe (a, String))
 parse (Parser p) = p
 
 instance Functor Parser where
@@ -30,6 +30,18 @@ instance Applicative Parser where
         -- (a, String) -> (Just (apply a function (a -> b) to type a so now it's a b so we're good and the type checker can go fuck off again!), String) 
         Just (r', s'') -> Just (r r', s'')
 
+
+instance Monad Parser where
+  return = pure
+
+  (>>=) :: Parser a -> (a -> Parser b) -> Parser b
+  (Parser f) >>= g = Parser $ \x -> 
+    let initial = f x
+    in case initial of 
+      -- (a, String)
+      Just (r, s) -> parse (g r) s
+      Nothing -> Nothing
+
 instance Alternative Parser where
     empty = Parser $ const Nothing
     (<|>) :: Parser a -> Parser a -> Parser a -- whatever the hell this does
@@ -38,8 +50,27 @@ instance Alternative Parser where
 
 
 
+-- succeed if and only if the character parsed matches the predicate
+sat :: (Char -> Bool) -> Parser Char
+sat predicate = Parser parseChar'
+  where parseChar' "" = Nothing
+        parseChar' (x : xs) = if predicate x then Just (x, xs) else Nothing
 
-parseChar :: Parser Char
-parseChar = Parser $ \x -> parseChar' x
-    where parseChar' "" = Nothing
-          parseChar' (x:xs) = Just (x, xs)
+-- parse a specfic character (as in succeeds if it parses the certain character)
+char :: Char -> Parser Char
+char x = sat (==x)
+
+-- succeed for any character
+next :: Parser Char
+next = sat (const True)
+
+-- Succeeds when it finds the first matching character, otherwise fails.
+either :: Char -> Char -> Parser Char
+either x y = char x <|> char y
+
+between :: Char -> Char -> Parser String
+between x y = char x *> many (sat $ (/=) y) <* char y
+
+
+
+y = char '(' *> next <* (next <|> char ')')
