@@ -1,10 +1,13 @@
 -- this is gonna be hard
-{-# LANGUAGE LambdaCase #-}
+
+
 
 import Control.Monad
+import Data.Foldable
 import Control.Applicative
 import Control.Arrow
-import Data.Char (isNumber)
+import Data.Char
+import Json 
 
 newtype Parser a = Parser (String -> Maybe (a,String))
 
@@ -35,9 +38,9 @@ instance Monad Parser where
   return = pure
 
   (>>=) :: Parser a -> (a -> Parser b) -> Parser b
-  (Parser f) >>= g = Parser $ \x -> 
+  (Parser f) >>= g = Parser $ \x ->
     let initial = f x
-    in case initial of 
+    in case initial of
       -- (a, String)
       Just (r, s) -> parse (g r) s
       Nothing -> Nothing
@@ -64,13 +67,39 @@ char x = sat (==x)
 next :: Parser Char
 next = sat (const True)
 
+full :: Parser String
+full = many (sat $ const True)
+
+until :: Char -> Parser String
+until = many . sat . (/=)
+
+
 -- Succeeds when it finds the first matching character, otherwise fails.
 either :: Char -> Char -> Parser Char
 either x y = char x <|> char y
 
+-- succeeds for everything between these two characters
 between :: Char -> Char -> Parser String
 between x y = char x *> many (sat $ (/=) y) <* char y
 
+digit :: Parser Integer
+digit = Parser parseDigit
+    where parseDigit [] = Nothing
+          parseDigit s@(c:cs)
+              | isDigit c = Just (fromIntegral $ digitToInt c, cs)
+              | otherwise = Nothing
 
+ -- parse an entire number (may be negative)
+num :: Parser Integer
+num = maybe id (const negate) <$> optional (char '-') <*> (toInteger <$> some digit)
+    where toInteger = foldl' ((+) . (* 10)) 0
+
+
+
+value :: Parser JsonValue
+value = (JsonString <$> between '"' '"') <|> (JsonInteger <$> num)
+
+array :: Parser JsonValue
+array = JsonArray <$> fmap (\x -> value (fst x)) between '[' ']'
 
 y = char '(' *> next <* (next <|> char ')')

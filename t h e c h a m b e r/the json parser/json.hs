@@ -1,3 +1,6 @@
+
+module Json where
+
 import Data.Map (Map)
 import Data.Map qualified
 import Data.Text (Text, pack, concat, append, unpack)
@@ -9,7 +12,7 @@ newtype JsonError = JsonError String
 data JsonValue
   = JsonNull
   | JsonBool Bool
-  | JsonNumber Double
+  | JsonInteger Integer
   | JsonString String
   | JsonArray [JsonValue]
   | JsonObject (Map String JsonValue)
@@ -41,8 +44,8 @@ instance Monoid JsonValue where
 class ToJson a where
   toJson :: a -> JsonValue
 
-instance ToJson Double where
-  toJson = JsonNumber
+instance ToJson Integer where
+  toJson = JsonInteger
 
 instance ToJson Bool where
   toJson = JsonBool
@@ -56,8 +59,8 @@ instance {-# OVERLAPPING #-} ToJson String where
 class FromJson a where
   fromJson :: JsonValue -> Either JsonError a
 
-instance FromJson Double where
-  fromJson (JsonNumber num) = Right num
+instance FromJson Integer where
+  fromJson (JsonInteger num) = Right num
   fromJson _ = Left $ JsonError "only numbers"
 
 instance FromJson String where
@@ -87,7 +90,7 @@ stringify = flip stringify' 0
 stringify' :: JsonValue -> Int -> Text
 stringify' (JsonBool bool)     depth = pack $ show bool
 stringify' (JsonString string) depth = pack ("\"" ++ string ++ "\"")
-stringify' (JsonNumber num)    depth = pack $ show num
+stringify' (JsonInteger num)    depth = pack $ show num
 stringify' JsonNull            depth = pack "null"
 stringify' (JsonArray arr)     depth = pack $ "[" ++ tail (foldl (\x acc -> x ++  "," ++ unpack (stringify acc)) "" arr ++  "]")
 stringify' (JsonObject map)    depth = pack $ init (Data.Map.foldrWithKey (folder (depth+1)) "{" map) ++ (indent $ depth) ++ "}"
@@ -95,4 +98,4 @@ stringify' (JsonObject map)    depth = pack $ init (Data.Map.foldrWithKey (folde
       folder depth k a result  =  result ++ indent depth ++ show k ++ " : " ++ unpack (stringify' a depth) ++ ","
       indent n = join $ "\n" : replicate n "  "
 
-z = JsonObject (Data.Map.fromList [("b", JsonObject $ Data.Map.fromList [("c", JsonNumber 4.0), ("d", JsonArray $ map JsonNumber [1..10])]), ("e", JsonNumber 4), ("f", JsonObject $ Data.Map.fromList [("g", JsonNull), ("h", JsonString "monkeys"), ("i", JsonArray $ map (JsonString . (: [])) "this is a string into its characters wrapped as strings" )])])
+z = JsonObject (Data.Map.fromList [("b", JsonObject $ Data.Map.fromList [("c", JsonInteger 4), ("d", JsonArray $ map JsonInteger [1..10])]), ("e", JsonInteger 4), ("f", JsonObject $ Data.Map.fromList [("g", JsonNull), ("h", JsonString "monkeys"), ("i", JsonArray $ map (JsonString . (: [])) "this is a string into its characters wrapped as strings" )])])
