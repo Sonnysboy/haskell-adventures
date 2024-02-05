@@ -1,7 +1,7 @@
 -- this is gonna be hard
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-# HLINT ignore "Use tuple-section" #-}
+{-# HLINT ignore "Use >=>" #-} -- i dont know what thi sfunction does yet so im not gonna ccept the hint until i know
 
 import Control.Applicative
 import Control.Arrow
@@ -18,35 +18,21 @@ parse (Parser p) = p
 
 instance Functor Parser where
   fmap :: (a -> b) -> Parser a -> Parser b
-  fmap transform p = Parser $ \x ->
-    let result = parse p x
-     in first transform <$> result
+  fmap transform p = Parser (fmap (first transform) . parse p)
 
 instance Applicative Parser where
   pure a = Parser $ \x -> Just (a, x) -- questionable
   (<*>) :: Parser (a -> b) -> Parser a -> Parser b
-  Parser f <*> Parser g = Parser $ \x -> case f x of -- ok so we're parsing using f
-    Nothing -> Nothing
-    -- (a -> b, string)
-    Just (r, s') -> case g s' of -- Maybe (b, String)
-      Nothing -> Nothing
-      -- (a, String) -> (Just (apply a function (a -> b) to type a so now it's a b so we're good and the type checker can go fuck off again!), String)
-      Just (r', s'') -> Just (r r', s'')
+  Parser f <*> Parser g = Parser $ \x -> f x >>= \(r, s') -> g s' >>= \(r', s'') -> Just (r r', s'')
 
 instance Monad Parser where
   return = pure
 
   (>>=) :: Parser a -> (a -> Parser b) -> Parser b
-  (Parser f) >>= g = Parser $ \x ->
-    let initial = f x
-     in case initial of
-          -- (a, String)
-          Just (r, s) -> parse (g r) s
-          Nothing -> Nothing
-
+  (Parser f) >>= g = Parser $ \x -> f x >>= \(r, s) -> parse (g r) s
 instance Alternative Parser where
   empty = Parser $ const Nothing
-  (<|>) :: Parser a -> Parser a -> Parser a -- whatever the hell this does
+  (<|>) :: Parser a -> Parser a -> Parser a -- i understand now!!
   Parser p <|> Parser r = Parser $ \x -> p x <|> r x
 
 -- the Maybe Alternative returns the first Just, i.e Just x <|> Just y = Just x
@@ -117,13 +103,7 @@ object = Json.fromPairs <$> (eatWhitespace >> char '{' >> parseInternals <* eatW
 --   Nothing -> Nothing
 
 array :: Parser JsonValue
-array =
-  eatWhitespace
-    >> between '[' ']'
-    >>= ( \x -> Parser $ \rest -> case parse (many (value <* char ',' <|> value)) x of
-            Just (value, _) -> Just (JsonArray value, rest)
-            Nothing -> Nothing
-        )
+array = eatWhitespace >> between '[' ']' >>= \x -> Parser $ \rest -> parse (many (value <* char ',' <|> value)) x >>= \(value, _) -> Just (JsonArray value, rest)
 
 space = char ' '
 
@@ -134,23 +114,10 @@ eatNewlines = void (many $ char '\n')
 eatWhitespace = void (many (space <|> char '\t' <|> char '\n'))
 
 parseKey :: Parser String
-parseKey =
-  seek ':'
-    >>= ( \x -> Parser $ \y -> case parse string x of
-            Just (actualKey, _) -> Just (actualKey, y)
-            Nothing -> Nothing
-        )
+parseKey = seek ':' >>= ( \x -> Parser $ \y -> parse string x >>= \result -> Just (fst result, y))
 
 keyed :: Parser (String, JsonValue)
-keyed = Parser $ \x ->
-  let key = parseKey -- ok so now we have this key
-   in case parse key x of
-        Just (key, rest) ->
-          --          get rid of : and try to find a value from it
-          case parse (char ':' >> eatWhitespace >> value) rest of
-            Just (value, rest') -> Just ((key, value), rest')
-            Nothing -> Nothing -- we'dprobably wanna throw an error for this
-        Nothing -> Nothing
+keyed = Parser $ \x -> parse parseKey x >>= \(key, rest) -> parse (char ':' >> eatWhitespace >> value) rest >>= \(value, rest') -> Just ((key, value), rest')
 
 -- this can parse the guts of an object but kind of scares me
 parseInternals :: Parser [(String, JsonValue)]
