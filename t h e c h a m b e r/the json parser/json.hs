@@ -106,7 +106,7 @@ stringify' (JsonBool bool)     depth = pack $ show bool
 stringify' (JsonString string) depth = pack ("\"" ++ string ++ "\"")
 stringify' (JsonInteger num)    depth = pack $ show num
 stringify' JsonNull            depth = pack "null"
-stringify' (JsonArray arr)     depth = pack $ "[" ++ tail (foldl (\x acc -> x ++  "," ++ unpack (stringify acc)) "" arr ++  "]")
+stringify' (JsonArray arr)     depth = pack $ "[" ++ tail (foldl (\x acc -> x ++  "," ++ unpack (stringify' acc depth)) "" arr ++  "]")
 stringify' (JsonObject map)    depth = pack $ init (Data.Map.foldrWithKey (folder (depth+1)) "{" map) ++ (indent $ depth) ++ "}"
   where
       folder depth k a result  =  result ++ indent depth ++ show k ++ " : " ++ unpack (stringify' a depth) ++ ","
