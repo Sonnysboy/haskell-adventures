@@ -16,7 +16,7 @@ data JsonValue
   | JsonString String
   | JsonArray [JsonValue]
   | JsonObject (Map String JsonValue)
-  deriving (Show, Eq)
+  deriving (Eq)
 
 {-
 
@@ -31,6 +31,18 @@ fromMap map = JsonObject $ Data.Map.map toJson map
 -}
 toMap :: (FromJson a) => JsonValue -> Map String a
 toMap (JsonObject map) = snd $ Data.Map.mapEither fromJson map
+
+fromPairs :: [(String, JsonValue)] -> JsonValue
+fromPairs = JsonObject . Data.Map.fromList
+
+
+
+{-
+Creates a jsonobject from the given string and value
+-}
+(.=) :: (ToJson a) => String -> a -> JsonValue 
+(.=) key value = JsonObject (Data.Map.fromList [(key, toJson value)]) 
+
 
 instance Semigroup JsonValue where
   (<>) :: JsonValue -> JsonValue -> JsonValue
@@ -83,6 +95,9 @@ instance (FromJson a) => FromJson [a] where
 
 
 -------------------
+
+instance Show JsonValue where
+  show = unpack . stringify
 
 stringify :: JsonValue -> Text
 stringify = flip stringify' 0

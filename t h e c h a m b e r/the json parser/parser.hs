@@ -8,6 +8,7 @@ import Control.Monad
 import Data.Char
 import Data.Foldable
 import Json
+import Data.Map
 
 newtype Parser a = Parser (String -> Maybe (a, String))
 
@@ -90,45 +91,62 @@ digit = Parser parseDigit
 num :: Parser Integer
 num = maybe id (const negate) <$> optional (char '-') <*> (toInteger <$> some digit)
   where
-    toInteger = foldl' ((+) . (* 10)) 0
+    toInteger = Data.Foldable.foldl' ((+) . (* 10)) 0
 
 value :: Parser JsonValue
-value = (JsonString <$> between '"' '"' <|> JsonInteger <$> num)
+value = JsonString <$> between '"' '"' <|> JsonInteger <$> num <|> array <|> object
 
 string :: Parser String
 string = between '"' '"'
+
+-- so this parses a JsonObject
+-- fullObject :: Parser JsonValue
+-- fullObject = Parser $ \x -> case parse (eatWhitespace >> char '{' >> (parseKey)) x of
+--   Just (key, rest) -> case parse (eatWhitespace >> parseInternals) rest of
+--     Just (innards, rest) -> error $ (show innards) ++ " " ++ rest-- Just (Json.fromPairs innards, rest)
+--     Nothing -> error $ "e: " ++ rest
+--   Nothing -> error $ "x: " ++ x
+
+object :: Parser JsonValue
+object = Json.fromPairs <$> (char '{' >> parseInternals <* char '}')
+
 
 -- chain :: Parser String -> Parser b -> Parser b
 -- chain (Parser f) (Parser g) = Parser $ \x -> case f x of
 --   Just (s, _) -> g s
 --   Nothing -> Nothing
 
-array :: Parser [JsonValue]
-array = between '[' ']' >>= (\x -> Parser $ \_ -> parse (many (value <* char ',' <|> value)) x)
+array :: Parser JsonValue
+array = eatWhitespace >> between '[' ']' >>= (\x -> Parser $ \_ -> case parse (many (value <* char ',' <|> value)) x of
+  Just (value, rest) -> Just (JsonArray value, rest)
+  Nothing -> Nothing)
 
 space = char ' '
 
-eatSpaces = void (many space)
+eatSpaces = void (many (space <|> char '\t'))
 
 eatNewlines = void (many $ char '\n')
 
 eatWhitespace = eatSpaces *> eatNewlines
 
+parseKey :: Parser String
+parseKey = seek ':' >>= (\x -> Parser $ \y -> case parse string x of
+    Just (actualKey, _) -> Just (actualKey, y)
+    Nothing -> Nothing)
 keyed :: Parser (String, JsonValue)
 keyed = Parser $ \x -> let
-  key = (seek ':' >>= (\x -> Parser $ \y -> case parse string x of
-    Just (actualKey, _) -> Just (actualKey, y)
-    Nothing -> Nothing)) -- ok so now we have this key
+  key = parseKey -- ok so now we have this key
   in case parse key x of
     Just (key, rest) ->
       --          get rid of : and try to find a value from it
       case parse (char ':' >> eatSpaces >> value) rest of
       Just (value, rest') -> Just ((key, value), rest')
-      Nothing -> error "Invalid parsing" -- we'dprobably wanna throw an error for this
+      Nothing -> Nothing -- we'dprobably wanna throw an error for this
     Nothing -> Nothing
 
-pairs :: Parser [(String, JsonValue)]
-pairs = eatWhitespace *> many (optional (char '{') *> eatWhitespace >> keyed <* (((char ',')) <|> char '}') <* eatWhitespace )
+-- this can parse the guts of an object but kind of scares me 
+parseInternals :: Parser [(String, JsonValue)]
+parseInternals = eatSpaces *> many (optional (char ',') *> eatSpaces *> keyed <* eatSpaces <* char ',' <* eatSpaces <|> keyed)
 
 -- so we can use >> for getting things OUT of strings like
 -- (char ':' >> full) ":monkey" = monkey.
@@ -136,3 +154,7 @@ pairs = eatWhitespace *> many (optional (char '{') *> eatWhitespace >> keyed <* 
 
 -- y = char '(' *> next <* (next <|> char ')')
 -- testing one: {\"string one\":\"value one\",\"number one\":1}
+exampleInternals="\"ppu\": 55, \"id\": \"0001\",  \"type\": \"donut\",  \"name\": \"Cake\""
+complexNested="\"id\": \"0001\",\"type\": \"donut\",\"name\": \"Cake\",\"ppu\": 55,\"batters\":{\"batter\":[{ \"id\": \"1001\", \"type\": \"Regular\" },{ \"id\": \"1002\", \"type\": \"Chocolate\" },{ \"id\": \"1003\", \"type\": \"Blueberry\" },{ \"id\": \"1004\", \"type\": \"Devil's Food\" }]},\"topping\":[{ \"id\": \"5001\", \"type\": \"None\" },{ \"id\": \"5002\", \"type\": \"Glazed\" },{ \"id\": \"5005\", \"type\": \"Sugar\" },{ \"id\": \"5007\", \"type\": \"Powdered Sugar\" },{ \"id\": \"5006\", \"type\": \"Chocolate with Sprinkles\" },{ \"id\": \"5003\", \"type\": \"Chocolate\" },{ \"id\": \"5004\", \"type\": \"Maple\" }]"
+-- simpleNested ="{\"batters\":{\"batter\":[{ \"id\": \"1001\", \"type\": \"Regular\" },{ \"id\": \"1002\", \"type\": \"Chocolate\" },{ \"id\": \"1003\", \"type\": \"Blueberry\" },{ \"id\": \"1004\", \"type\": \"Devil's Food\" }]},\"topping\":[{ \"id\": \"5001\", \"type\": \"None\" },{ \"id\": \"5002\", \"type\": \"Glazed\" },{ \"id\": \"5005\", \"type\": \"Sugar\" },{ \"id\": \"5007\", \"type\": \"Powdered Sugar\" },{ \"id\": \"5006\", \"type\": \"Chocolate with Sprinkles\" },{ \"id\": \"5003\", \"type\": \"Chocolate\" },{ \"id\": \"5004\", \"type\": \"Maple\" }]}"
+simpleNested = "\"outside\":\"the object\",\"monkey1\" : { \"id\" : 123, \"name\": \"monkey1\", \"nested\" : {\"nested object key\": \"nested object value\"}}, \"outside\":\"the object\", \"another\": {\"object\" : \"its a string\"}"
