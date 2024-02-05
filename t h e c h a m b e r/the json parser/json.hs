@@ -16,7 +16,7 @@ data JsonValue
   | JsonString String
   | JsonArray [JsonValue]
   | JsonObject (Map String JsonValue)
-  deriving (Eq)
+  deriving (Eq, Show)
 
 {-
 
@@ -95,9 +95,8 @@ instance (FromJson a) => FromJson [a] where
 
 
 -------------------
-
-instance Show JsonValue where
-  show = unpack . stringify
+-- instance Show JsonValue where
+  -- show = unpack . stringify
 
 stringify :: JsonValue -> Text
 stringify = flip stringify' 0
