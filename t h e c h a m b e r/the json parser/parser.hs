@@ -106,24 +106,33 @@ string = between '"' '"'
 array :: Parser [JsonValue]
 array = between '[' ']' >>= (\x -> Parser $ \_ -> parse (many (value <* char ',' <|> value)) x)
 
+space = char ' '
+
+eatSpaces = void (many space)
+
+eatNewlines = void (many $ char '\n')
+
+eatWhitespace = eatSpaces *> eatNewlines
+
 keyed :: Parser (String, JsonValue)
 keyed = Parser $ \x -> let
-  key = optional (char ',') *> (seek ':' >>= (\x -> Parser $ \y -> case parse string x of
+  key = (seek ':' >>= (\x -> Parser $ \y -> case parse string x of
     Just (actualKey, _) -> Just (actualKey, y)
     Nothing -> Nothing)) -- ok so now we have this key
   in case parse key x of
     Just (key, rest) ->
       --          get rid of : and try to find a value from it
-      case parse (char ':' >> value) rest of
+      case parse (char ':' >> eatSpaces >> value) rest of
       Just (value, rest') -> Just ((key, value), rest')
       Nothing -> error "Invalid parsing" -- we'dprobably wanna throw an error for this
     Nothing -> Nothing
 
 pairs :: Parser [(String, JsonValue)]
-pairs = many keyed
+pairs = eatWhitespace *> many (optional (char '{') *> eatWhitespace >> keyed <* (((char ',')) <|> char '}') <* eatWhitespace )
 
 -- so we can use >> for getting things OUT of strings like
 -- (char ':' >> full) ":monkey" = monkey.
 -- what >> does is it just consumes whatever we give it and passes the rest of the string into the second function
 
 -- y = char '(' *> next <* (next <|> char ')')
+-- testing one: {\"string one\":\"value one\",\"number one\":1}
