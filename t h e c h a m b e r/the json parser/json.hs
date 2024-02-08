@@ -107,4 +107,3 @@ stringify' (JsonObject map) depth    = pack $ init (Data.Map.foldrWithKey (folde
     folder depth k a result = result ++ indent depth ++ show k ++ " : " ++ unpack (stringify' a depth) ++ ","
     indent n = join $ "\n" : replicate n "  "
 
-z = JsonObject (Data.Map.fromList [("b", JsonObject $ Data.Map.fromList [("c", JsonInteger 4), ("d", JsonArray $ map JsonInteger [1 .. 10])]), ("e", JsonInteger 4), ("f", JsonObject $ Data.Map.fromList [("g", JsonNull), ("h", JsonString "monkeys"), ("i", JsonArray $ map (JsonString . (: [])) "this is a string into its characters wrapped as strings")])])
