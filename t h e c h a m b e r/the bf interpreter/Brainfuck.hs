@@ -113,7 +113,7 @@ decrementByte = modify $ \x -> x - 1
 runLoop :: [Instruction'] -> ProgramState -> IO ProgramState
 runLoop is p = do
   state <- foldl (\s i -> do _s <- s; runInstr i _s) (pure p) is
-  if (_tape state !! _dp state) /= 0
+  if (p ^. tape ^?! ix (p ^. dp)) /= 0
     then
       runLoop is state
     else
