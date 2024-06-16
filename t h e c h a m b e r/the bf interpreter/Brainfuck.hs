@@ -16,6 +16,7 @@ import Control.Lens
     (^?!),
   )
 import Control.Monad ((>=>))
+import Data.Maybe (fromJust)
 import Data.Word
 import GHC.Base (unsafeChr)
 import GHC.IO.Handle (hSetBinaryMode)
@@ -68,7 +69,7 @@ between x y = char x *> many (sat $ (/=) y) <* char y
 data ProgramState = ProgramState
   { _tape :: [Word8],
     _dp :: Int
-  } 
+  }
 
 defaultState = ProgramState [] 0
 
@@ -83,13 +84,15 @@ data Instruction where
     {runInsn :: ProgramState -> IO ProgramState} ->
     Instruction
 
-data Instruction' = IncrementPointer
+data Instruction'
+  = IncrementPointer
   | DecrementPointer
   | IncrementByte
   | DecrementByte
   | AcceptByte
   | OutputByte
-  | Loop [Instruction'] deriving (Show)
+  | Loop [Instruction']
+  deriving (Show)
 
 runInstr :: Instruction' -> ProgramState -> IO ProgramState
 runInstr IncrementPointer = runInsn incrementPointer
@@ -120,9 +123,9 @@ runLoop is p = do
     else
       pure state
 
-
 parseLoop :: Parser [Instruction']
-parseLoop = char '[' >>   many parseInstruction <* char ']'
+parseLoop = char '[' >> many parseInstruction <* char ']'
+
 parseInstruction :: Parser Instruction' -- how do i tell vscode not to format this
 parseInstruction =
   ( next >>= \x -> Parser $ \rest ->
@@ -153,6 +156,12 @@ type Program = [Instruction']
 
 parseProgram :: String -> Maybe Program
 parseProgram = fmap fst . parse (many parseInstruction)
+
+runProgramFromFile :: FilePath -> IO ()
+runProgramFromFile file = do
+  lines <- readFile file
+  runProgram . fromJust . parseProgram $ lines
+  pure ()
 
 runProgram :: Program -> IO ProgramState
 runProgram = go (return $ ProgramState (replicate 20 0) 0)
