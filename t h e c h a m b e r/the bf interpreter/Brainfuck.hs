@@ -4,7 +4,6 @@
 module Brainfuck where
 
 import Control.Applicative
-import Debug.Trace
 import Control.Arrow (Arrow (first))
 import Control.Lens
   ( Ixed (ix),
@@ -17,7 +16,6 @@ import Control.Lens
     (^?!),
   )
 import Control.Monad ((>=>))
-import Data.Maybe
 import Data.Word
 import GHC.Base (unsafeChr)
 import GHC.IO.Handle (hSetBinaryMode)
@@ -70,7 +68,7 @@ between x y = char x *> many (sat $ (/=) y) <* char y
 data ProgramState = ProgramState
   { _tape :: [Word8],
     _dp :: Int
-  } deriving Show
+  } 
 
 defaultState = ProgramState [] 0
 
@@ -115,7 +113,7 @@ decrementByte = modify $ \x -> x - 1
 
 runLoop :: [Instruction'] -> ProgramState -> IO ProgramState
 runLoop is p = do
-  state <- foldr (\i s -> do _s <- s; runInstr i _s) (pure p) is
+  state <- foldl (\s i -> do _s <- s; runInstr i _s) (pure p) is
   if (_tape state !! _dp state) /= 0
     then
       runLoop is state
@@ -148,7 +146,7 @@ acceptByte = Instruction $ \p -> do
   runInsn (modify $ const $ fromIntegral $ fromEnum c) p -- and set it
 
 outputByte = Instruction $ \p -> do
-  print $ unsafeChr . fromIntegral $ (p ^. tape ^?! ix (p ^. dp))
+  putStr $ return . unsafeChr . fromIntegral $ (p ^. tape ^?! ix (p ^. dp))
   pure p
 
 type Program = [Instruction']
@@ -162,6 +160,5 @@ runProgram = go (return $ ProgramState (replicate 20 0) 0)
     go state [] = state
     go state (insn : insns) = do
       _state <- state
-      print $ "current state:" ++ show _state
       new <- runInstr insn _state
       go (pure new) insns
