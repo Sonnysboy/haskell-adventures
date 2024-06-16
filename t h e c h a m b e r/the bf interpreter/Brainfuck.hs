@@ -59,9 +59,6 @@ next :: Parser Char
 next = sat (const True)
 
 -- match until
-seek :: Char -> Parser String
-seek = many . sat . (/=)
-
 -- succeeds for everything between these two characters
 between :: Char -> Char -> Parser String
 between x y = char x *> many (sat $ (/=) y) <* char y
@@ -71,7 +68,6 @@ data ProgramState = ProgramState
     _dp :: Int
   }
 
-defaultState = ProgramState [] 0
 
 w2c :: Word8 -> Char
 w2c = unsafeChr . fromIntegral
